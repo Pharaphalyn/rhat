@@ -60,6 +60,13 @@ Brain_3 = {
      *
      */
     thinkAboutIt: function(self, enemies, bullets, objects, events) {
+
+        if (events.length > 0) {
+            console.log(events.length);
+            console.log(events);
+            console.log(events[0]);
+        }
+
         const max = ground.width + ground.height;
         let safeBullet, dangerousBullet,
             safeBulletDist = max,
@@ -86,44 +93,86 @@ Brain_3 = {
 
         if (ratMessage && messageSpam === 0) {
             messageSpam = 20;
-        }else if (ratMessage && messageSpam === 1){
+        } else if (ratMessage && messageSpam === 1) {
             messageSpam--;
             ratMessage = undefined;
-        }else if (messageSpam > 0){
+        } else if (messageSpam > 0) {
             messageSpam--;
         }
 
 
-                let doShooty = function(params){
-                    params.message = ratMessage ? ratMessage : params.message;
-                    return {do: actions.shoot, params:params};
-                }
+        let doShooty = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.shoot,
+                params: params
+            };
+        }
 
-                let doMove = function(params){
-                    params.message = ratMessage ? ratMessage : params.message;
-                    return {do: actions.move, params: params};
-                }
+        let doMove = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.move,
+                params: params
+            };
+        }
 
-                let doEatan = function(params){
-                    params.message = ratMessage ? ratMessage : params.message;
-                    return {do: actions.eat, params: params};
-                }
+        let doEatan = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.eat,
+                params: params
+            };
+        }
 
-                let doTurn = function(params){
-                    params.message = ratMessage ? ratMessage : params.message;
-                    return {do: actions.turn, params: params};
-                }
+        let doTurn = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.turn,
+                params: params
+            };
+        }
 
-                let doNothing = function(params){
-                    params.message = ratMessage ? ratMessage : params.message;
-                    return {do: actions.none, params: params};
-                }
+        let doNothing = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.none,
+                params: params
+            };
+        }
 
-                let doJumpy = function(params){
-                    params.message = ratMessage ? ratMessage : params.message;
-                    return {do: actions.jump, params: params};
-                }
+        let doJumpy = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.jump,
+                params: params
+            };
+        }
 
+        let shootAtEnemy = function(enemy, backlash) {
+            let directionAngle = angleBetween(self, enemy);
+            let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle) - Math.PI);
+            if (diff < backlash) {
+                if (distanceBetween(self, enemy) > 300) {
+                    return doMove({
+                        angle: directionAngle
+                    });
+                }
+                return doShooty({
+                    message: "Dead " + e.name
+                });
+            } else {
+                if (distanceBetween(self, enemy) < 300) {
+                    return doTurn({
+                        clockwise: normalizeAngle(self.angle - directionAngle) > 2 * normalizeAngle(Math.PI - (self.angle - directionAngle))
+                    });
+                }
+                return doMove({
+                    angle: directionAngle,
+                    message: "How are you, " + e.name + "?"
+                });
+            }
+        };
 
         let hitAndRun = function() {
             // Find nearest enemy
@@ -144,12 +193,15 @@ Brain_3 = {
                 backlash = backlash * 3;
             }
 
+
             // Check enough energy for hunting
             if (self.energy > shotEnergyCost + 10) {
                 let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle) - Math.PI);
                 if (diff < backlash) {
                     if (distanceBetween(self, enemy) > 300) {
-                        return doMove({angle: directionAngle});
+                        return doMove({
+                            angle: directionAngle
+                        });
                     }
                     run = true;
                     danger = enemy;
@@ -157,11 +209,17 @@ Brain_3 = {
                     return doShooty({});
                 } else {
                     if (distanceBetween(self, enemy) < 300 && distanceBetween(self, enemy) > 100) {
-                        return doTurn({clockwise: normalizeAngle(self.angle - directionAngle) > 2 * normalizeAngle(Math.PI - (self.angle - directionAngle))});
+                        return doTurn({
+                            clockwise: normalizeAngle(self.angle - directionAngle) > 2 * normalizeAngle(Math.PI - (self.angle - directionAngle))
+                        });
                     } else if (distanceBetween(self, enemy) <= 100) {
-                        return doMove({angle: Math.PI + directionAngle});
+                        return doMove({
+                            angle: Math.PI + directionAngle
+                        });
                     }
-                    return doMove({angle: directionAngle});
+                    return doMove({
+                        angle: directionAngle
+                    });
                 }
             }
         }
@@ -192,7 +250,10 @@ Brain_3 = {
                     runAngle = Math.PI / 2.0;
                 }
             }
-            return doMove({angle: runAngle, message: "Spare the little mouse."});
+            return doMove({
+                angle: runAngle,
+                message: "Spare the little mouse."
+            });
         }
 
         let goToCenter = function() {
@@ -201,7 +262,9 @@ Brain_3 = {
                 hh = ground.height / 8;
             if (self.position.x < center.x - wh || self.position.x > center.x + wh ||
                 self.position.y < center.y - hh || self.position.y > center.y + hh) {
-                return doMove({angle: angleBetweenPoints(self.position, center)});
+                return doMove({
+                    angle: angleBetweenPoints(self.position, center)
+                });
             } else {
                 return doNothing({});
             }
@@ -236,7 +299,10 @@ Brain_3 = {
             const backlash = Math.PI / 25.0;
             let diff = Math.abs(differenceBetweenAngles(bulletAngle, collisionAngle));
             if (diff < backlash) {
-                return doJumpy({angle: bulletAngle + Math.PI / 2.0, message: "Jumpy-jumpy"});
+                return doJumpy({
+                    angle: bulletAngle + Math.PI / 2.0,
+                    message: "Jumpy-jumpy"
+                });
             }
         }
 
@@ -261,25 +327,11 @@ Brain_3 = {
             enemy = e;
             let backlash = Math.PI / 50.0;
             let directionAngle = angleBetween(self, e);
-            if (distanceBetween(self, enemy) < 150){
+            if (distanceBetween(self, enemy) < 150) {
                 backlash = Math.PI / 20
             }
             if (self.energy > shotEnergyCost + 10 && enemy.lives <= (self.energy / shotEnergyCost) * bulletDamage && rayBetween(self, enemy)) {
-                let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle) - Math.PI);
-                if (diff < backlash) {
-                    if (distanceBetween(self, enemy) > 300) {
-                        return doMove({angle: directionAngle});
-                    }
-                    run = true;
-                    danger = enemy;
-                    ticksToRun = 15;
-                    return doShooty({message : "Dead " + e.name});
-                } else {
-                    if (distanceBetween(self, enemy) < 300) {
-                        return doTurn({clockwise: normalizeAngle(self.angle - directionAngle) > 2 * normalizeAngle(Math.PI - (self.angle - directionAngle))});
-                    }
-                    return doMove({angle: directionAngle, message : "How are you, " + e.name + "?"});
-                }
+                return shootAtEnemy(enemy, backlash);
             }
         }
 
@@ -289,7 +341,10 @@ Brain_3 = {
             const backlash = Math.PI / 25.0;
             let diff = Math.abs(differenceBetweenAngles(bulletAngle, collisionAngle));
             if (diff < backlash) {
-                return doJumpy({angle: bulletAngle + Math.PI / 2.0, message: "Jumpy-jumpy"});
+                return doJumpy({
+                    angle: bulletAngle + Math.PI / 2.0,
+                    message: "Jumpy-jumpy"
+                });
             }
         }
 
@@ -304,7 +359,9 @@ Brain_3 = {
         if (safeBullet && self.bullets < creatureMaxBullets) {
             run = false;
             let angle = angleBetween(self, safeBullet);
-            return doMove({angle: angle});
+            return doMove({
+                angle: angle
+            });
         }
 
         let dangerousEnemy = 0;
