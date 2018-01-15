@@ -73,22 +73,22 @@ br_rhat = {
                 x: ground.width / 2,
                 y: ground.height / 2
             };
-        if (typeof run == "undefined") {
+        if (typeof ratRun == "undefined") {
             ticksTillMoving = 50;
-            run = false;
+            ratRun = false;
             ratMessage = undefined;
-            spam = 0;
-            messageSpam = 0;
+            ratSpam = 0;
+            ratMessageSpam = 0;
         }
 
 
-        if (ratMessage && messageSpam === 0) {
-            messageSpam = 20;
-        } else if (ratMessage && messageSpam === 1) {
-            messageSpam--;
+        if (ratMessage && ratMessageSpam === 0) {
+            ratMessageSpam = 20;
+        } else if (ratMessage && ratMessageSpam === 1) {
+            ratMessageSpam--;
             ratMessage = undefined;
-        } else if (messageSpam > 0) {
-            messageSpam--;
+        } else if (ratMessageSpam > 0) {
+            ratMessageSpam--;
         }
 
         events.forEach(event => {
@@ -224,7 +224,7 @@ br_rhat = {
                             message: "Crawling in the dark..."
                         });
                     }
-                    run = true;
+                    ratRun = true;
                     danger = enemy;
                     ticksToRun = 15;
                     return doShooty({});
@@ -249,7 +249,7 @@ br_rhat = {
 
         let runForYourLife = function() {
             if (ticksToRun == 1) {
-                run = false;
+                ratRun = false;
             }
             ticksToRun -= 1;
             return runTheFuckAway(danger)
@@ -322,7 +322,6 @@ br_rhat = {
                 dangerousBulletDist = dist;
                 dangerousBullet = bullet;
             }
-            dist = distanceBetweenPoints(center, bullet.position);
 
             if (!bullet.dangerous && dist < safeBulletDist) {
                 let fuckedUpEnemies = 0;
@@ -393,7 +392,7 @@ br_rhat = {
 
         // Consider save bullet
         if (safeBullet && self.bullets < creatureMaxBullets) {
-            run = false;
+            ratRun = false;
             let angle = angleBetween(self, safeBullet);
             return doMove({
                 angle: angle
@@ -411,7 +410,7 @@ br_rhat = {
             return runTheFuckAway(dangerousEnemy);
         }
 
-        if (run) {
+        if (ratRun) {
             return runForYourLife();
         }
 
