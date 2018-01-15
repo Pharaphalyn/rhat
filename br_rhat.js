@@ -1,4 +1,4 @@
-Brain_3 = {
+br_rhat = {
 
     /* Name of your awesome neuro-blockchain algorithm. 10 chars max. */
     name: "Крысорог",
@@ -61,13 +61,11 @@ Brain_3 = {
      */
     thinkAboutIt: function(self, enemies, bullets, objects, events) {
 
-        if (events.length > 0) {
-            console.log(events.length);
-            console.log(events);
-            console.log(events[0]);
-        }
+        const corners = [{x: 70, y: ground.height - 70}, {x: 70, y: 70}, {x: ground.width - 70, y: 70}, {x: ground.width - 70, y: ground.height - 70}];
 
         const max = ground.width + ground.height;
+        let height = ground.height;
+        let width = ground.width;
         let safeBullet, dangerousBullet,
             safeBulletDist = max,
             dangerousBulletDist = max,
@@ -82,14 +80,7 @@ Brain_3 = {
             spam = 0;
             messageSpam = 0;
         }
-        events.forEach(event => {
-            if (event.type == events.murder) {
-                console.log(event);
-                if (event.payload[0] == self) {
-                    ratMessage = "Easykill, " + event.payload[1].name;
-                }
-            }
-        })
+
 
         if (ratMessage && messageSpam === 0) {
             messageSpam = 20;
@@ -100,6 +91,14 @@ Brain_3 = {
             messageSpam--;
         }
 
+        events.forEach(event => {
+            if (event.type == 1) {
+                console.log(event);
+                if (event.payload[0].id == self.id) {
+                    ratMessage = "Easy kill, " + event.payload[1].name;
+                }
+            }
+        })
 
         let doShooty = function(params) {
             params.message = ratMessage ? ratMessage : params.message;
@@ -125,10 +124,10 @@ Brain_3 = {
             };
         }
 
-        let doTurn = function(params) {
+        let doRotate = function(params) {
             params.message = ratMessage ? ratMessage : params.message;
             return {
-                do: actions.turn,
+                do: actions.rotate,
                 params: params
             };
         }
@@ -149,22 +148,43 @@ Brain_3 = {
             };
         }
 
+        let doTurn = function(params) {
+            params.message = ratMessage ? ratMessage : params.message;
+            return {
+                do: actions.turn,
+                params: params
+            };
+        }
+
         let shootAtEnemy = function(enemy, backlash) {
             let directionAngle = angleBetween(self, enemy);
-            let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle) - Math.PI);
+            let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle));
+            if (!rayBetween(self, enemy)){
+                return doMove({
+                    angle: directionAngle,
+                    message: "You can run, but you can't hide."
+                });
+            }
             if (diff < backlash) {
                 if (distanceBetween(self, enemy) > 300) {
                     return doMove({
                         angle: directionAngle
                     });
                 }
+                let killMessage = null;
+                if (enemy.name.length >= 6) {
+                    killMessage = enemy.name + "? More like Shit" + enemy.name.substring(enemy.name.length/2, enemy.name.length);
+                }
+                else{
+                    killMessage = "You are dead, " + enemy.name;
+                }
                 return doShooty({
-                    message: "Dead " + e.name
+                    message: killMessage
                 });
             } else {
                 if (distanceBetween(self, enemy) < 300) {
                     return doTurn({
-                        clockwise: normalizeAngle(self.angle - directionAngle) > 2 * normalizeAngle(Math.PI - (self.angle - directionAngle))
+                        angle: directionAngle
                     });
                 }
                 return doMove({
@@ -196,11 +216,12 @@ Brain_3 = {
 
             // Check enough energy for hunting
             if (self.energy > shotEnergyCost + 10) {
-                let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle) - Math.PI);
+                let diff = Math.abs(differenceBetweenAngles(self.angle, directionAngle));
                 if (diff < backlash) {
                     if (distanceBetween(self, enemy) > 300) {
                         return doMove({
-                            angle: directionAngle
+                            angle: directionAngle,
+                            message: "Crawling in the dark..."
                         });
                     }
                     run = true;
@@ -210,15 +231,17 @@ Brain_3 = {
                 } else {
                     if (distanceBetween(self, enemy) < 300 && distanceBetween(self, enemy) > 100) {
                         return doTurn({
-                            clockwise: normalizeAngle(self.angle - directionAngle) > 2 * normalizeAngle(Math.PI - (self.angle - directionAngle))
+                            clockwise: directionAngle
                         });
                     } else if (distanceBetween(self, enemy) <= 100) {
                         return doMove({
-                            angle: Math.PI + directionAngle
+                            angle: Math.PI + directionAngle,
+                            message: enemy.name + ", please back off"
                         });
                     }
                     return doMove({
-                        angle: directionAngle
+                        angle: directionAngle,
+                        message: "Too bad you can't see me, " + enemy.name
                     });
                 }
             }
@@ -233,40 +256,62 @@ Brain_3 = {
 
         }
 
+        let goToPreferablePosition = function(position1, position2, enemyPosition) {
+            if (distanceBetweenPoints(position1, enemyPosition) > distanceBetweenPoints(position2, enemyPosition)) {
+                return goToPosition(position1);
+            }
+            else{
+                return goToPosition(position2);
+            }
+        }
+
+
+
         let runTheFuckAway = function(enemy) {
-            let runAngle = angleBetween(self, enemy) + Math.PI;
+            let runAngle = angleBetween(self, enemy) + (Math.PI / 2.0) + Math.PI / 6;
+
             if (self.position.x + 70 > ground.width) {
-                runAngle = Math.PI / 2.0;
-            }
-            if (self.position.y - 70 < 0) {
-                runAngle = 0;
-            }
-            if (self.position.x - 70 < 0) {
-                runAngle = 3.0 * Math.PI / 2.0;
-            }
-            if (self.position.y + 70 > ground.height) {
-                runAngle = Math.PI;
-                if (self.position.x + 70 > ground.width) {
-                    runAngle = Math.PI / 2.0;
+                if(self.position.y + 70 > ground.height || self.position.y < 70){
+                    return goToPreferablePosition(corners[0], corners[2], enemy.position);
                 }
+                return goToPreferablePosition(corners[2], corners[3], enemy.position);
             }
+
+            if (self.position.x - 70 < 0) {
+                if(self.position.y + 70 > ground.height || self.position.y < 70){
+                    return goToPreferablePosition(corners[1], corners[3], enemy.position);
+                }
+                return goToPreferablePosition(corners[0], corners[1], enemy.position);
+            }
+
+            if (self.position.y - 70 < 0) {
+                if(self.position.x + 70 > ground.width) {
+
+                }
+                return goToPreferablePosition(corners[1], corners[2], enemy.position);
+            }
+
+            if (self.position.y + 70 > ground.height) {
+                return goToPreferablePosition(corners[0], corners[3], enemy.position);
+            }
+
             return doMove({
                 angle: runAngle,
-                message: "Spare the little mouse."
+                message: "Spare the little mouse, " + enemy.name + "."
             });
         }
 
-        let goToCenter = function() {
-            // Determine center area
-            let wh = ground.width / 8,
-                hh = ground.height / 8;
-            if (self.position.x < center.x - wh || self.position.x > center.x + wh ||
-                self.position.y < center.y - hh || self.position.y > center.y + hh) {
-                return doMove({
-                    angle: angleBetweenPoints(self.position, center)
-                });
-            } else {
-                return doNothing({});
+        let goToPosition = function(position) {
+            const angle = angleBetweenPoints(self.position, position);
+            return doMove({angle: angle});
+        }
+
+        let stealth = function(enemy) {
+            if ((distanceBetween(self, enemy) > 400 && enemy.lives < creatureMaxBullets + 2 * bulletDamage) || (distanceBetween(self, enemy) > 300 && enemy.lives < creatureMaxBullets + 1 * bulletDamage) || distanceBetween(self, enemy) > 500) {
+                return goToPosition(weakestEnemy.position);
+            }
+            else{
+                return doTurn({angle: angleBetween(self, enemy), message: "I'm looking at you, " + enemy.name})
             }
         }
 
@@ -293,24 +338,15 @@ Brain_3 = {
             }
         });
 
-        if (dangerousBullet && dangerousBulletDist < 200 && self.lives < 0.3 * creatureMaxLives[self.level]) {
-            let bulletAngle = Math.atan2(dangerousBullet.velocity.y, dangerousBullet.velocity.x);
-            let collisionAngle = angleBetween(self, dangerousBullet);
-            const backlash = Math.PI / 25.0;
-            let diff = Math.abs(differenceBetweenAngles(bulletAngle, collisionAngle));
-            if (diff < backlash) {
-                return doJumpy({
-                    angle: bulletAngle + Math.PI / 2.0,
-                    message: "Jumpy-jumpy"
-                });
-            }
-        }
-
         let e = 0;
-        let distance = max;
+        let weakestEnemy = enemies[0];
+        distance = max;
         let lives = self.bullets * bulletDamage;
         enemies.forEach(enemy => {
-            if (lives >= enemy.lives) {
+            if (enemy.lives < weakestEnemy.lives){
+                weakestEnemy = enemy;
+            }
+            if (lives > enemy.lives) {
                 e = enemy;
                 distance = distanceBetween(self, enemy);
                 lives = enemy.lives;
@@ -318,36 +354,36 @@ Brain_3 = {
                 if (distance > distanceBetween(self, enemy)) {
                     distance = distanceBetween(self, enemy);
                     lives = enemy.lives;
+                    e = enemy;
                 }
             }
         })
-
         //Kill the bitch
-        if (e != 0 && self.energy >= shotEnergyCost) {
+        if (e != 0) {
             enemy = e;
+            console.log(enemy.lives);
             let backlash = Math.PI / 50.0;
             let directionAngle = angleBetween(self, e);
             if (distanceBetween(self, enemy) < 150) {
                 backlash = Math.PI / 20
             }
-            if (self.energy > shotEnergyCost + 10 && enemy.lives <= (self.energy / shotEnergyCost) * bulletDamage && rayBetween(self, enemy)) {
+            if (self.energy > shotEnergyCost + 10) {
                 return shootAtEnemy(enemy, backlash);
             }
         }
 
-        if (dangerousBullet && dangerousBulletDist < 200) {
+        if (dangerousBullet && dangerousBulletDist < 200 && self.lives < 0.5 * creatureMaxLives[self.level]) {
             let bulletAngle = Math.atan2(dangerousBullet.velocity.y, dangerousBullet.velocity.x);
             let collisionAngle = angleBetween(self, dangerousBullet);
             const backlash = Math.PI / 25.0;
             let diff = Math.abs(differenceBetweenAngles(bulletAngle, collisionAngle));
             if (diff < backlash) {
-                return doJumpy({
+                return doMove({
                     angle: bulletAngle + Math.PI / 2.0,
                     message: "Jumpy-jumpy"
                 });
             }
         }
-
 
         if (self.lives < 0.4 * creatureMaxLives[self.level]) {
             if (self.bullets > 0 && self.energy >= eatBulletEnergyCost) {
@@ -365,12 +401,13 @@ Brain_3 = {
         }
 
         let dangerousEnemy = 0;
+        let backlash = Math.PI / 4;
         enemies.forEach(enemy => {
-            if (enemy.bullets > 0 && distanceBetween(self, enemy) < width / 4 && self.energy > creatureMaxEnergy[self.level] * 0.2) {
+            if (enemy.bullets > 0 && distanceBetween(self, enemy) < 500 && self.energy > creatureMaxEnergy[self.level] * 0.2 && Math.abs(angleBetween(enemy, self) - normalizeAngle(enemy.angle)) < backlash) {
                 dangerousEnemy = enemy;
             }
         })
-        if (dangerousEnemy && self.lives < creatureMaxLives[self.level] * 0.9) {
+        if (dangerousEnemy){// && self.lives < creatureMaxLives[self.level] * 0.9) {
             return runTheFuckAway(dangerousEnemy);
         }
 
@@ -384,19 +421,14 @@ Brain_3 = {
         } else {
 
             if (self.lives < creatureMaxLives[self.level] * 0.9 && self.energy == creatureMaxEnergy[self.level]) {
-                return doEatan({});
+                return doEatan({message: "Yummi!"});
             } else if (self.energy == creatureMaxEnergy[self.level] && self.bullets == creatureMaxBullets) {
                 return hitAndRun();
             }
         }
 
-        if (self.energy == creatureMaxEnergy[self.level]) {
-            if (ticksTillMoving == 0) {
-                ticksTillMoving = 100;
-                return goToCenter();
-            }
-
-            ticksTillMoving--;
+        if (self.energy > creatureMaxEnergy[self.level] * 0.5) {
+            return stealth(weakestEnemy);
         }
         return doNothing({});
     }
